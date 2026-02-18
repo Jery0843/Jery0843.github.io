@@ -45,6 +45,13 @@ jobs:
           ruby-version: 3.3
           bundler-cache: true
 
+      - name: Sync HTB writeups
+        env:
+          GH_TOKEN: ${{ secrets.HTB_PAT }}
+        run: |
+          chmod +x ./tools/convert_posts.sh
+          ./tools/convert_posts.sh
+
       - name: Build site
         run: bundle exec jekyll b -d "_site${{ steps.pages.outputs.base_path }}"
         env:
