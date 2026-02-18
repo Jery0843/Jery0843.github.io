@@ -112,11 +112,11 @@ for FILENAME in $MD_FILES; do
   PAYWALL_KEYWORDS="initial access|exploitation|exploit|foothold|gaining access|shell|reverse shell|post.exploitation|post exploitation|privilege escalation|privesc|priv esc|lateral movement|flag"
 
   # Find the first ## or ### header that contains any paywall keyword
-  CUTOFF_LINE=$(echo "$RAW_CONTENT" | grep -inE "^\s*#{2,3}\s+.*(${PAYWALL_KEYWORDS})" | head -1 | cut -d: -f1)
+  CUTOFF_LINE=$(echo "$RAW_CONTENT" | grep -inE "^\s*#{2,3}\s+.*(${PAYWALL_KEYWORDS})" | head -1 | cut -d: -f1 || true)
 
   # Fallback: try numbered section 3 (## 3. or ## 3 )
   if [ -z "$CUTOFF_LINE" ]; then
-    CUTOFF_LINE=$(echo "$RAW_CONTENT" | grep -n '^\s*##\s*3[.\s ]' | head -1 | cut -d: -f1)
+    CUTOFF_LINE=$(echo "$RAW_CONTENT" | grep -n '^\s*##\s*3[.\s ]' | head -1 | cut -d: -f1 || true)
   fi
 
   if [ -n "$CUTOFF_LINE" ] && [ "$CUTOFF_LINE" -gt 1 ]; then
@@ -130,10 +130,10 @@ for FILENAME in $MD_FILES; do
   fi
 
   # Remove the first H1 line (it becomes the post title in front matter)
-  TITLE_LINE=$(echo "$RAW_CONTENT" | grep -n '^# ' | head -1 | cut -d: -f1)
+  TITLE_LINE=$(echo "$RAW_CONTENT" | grep -n '^# ' | head -1 | cut -d: -f1 || true)
   if [ -n "$TITLE_LINE" ]; then
     # Also remove the intro paragraph right after the H1 title (if it exists before the first ---)
-    FIRST_HR=$(echo "$FREE_CONTENT" | grep -n '^---$' | head -1 | cut -d: -f1)
+    FIRST_HR=$(echo "$FREE_CONTENT" | grep -n '^---$' | head -1 | cut -d: -f1 || true)
     if [ -n "$FIRST_HR" ] && [ "$FIRST_HR" -gt "$TITLE_LINE" ]; then
       FREE_CONTENT=$(echo "$FREE_CONTENT" | tail -n +"$FIRST_HR")
     else
