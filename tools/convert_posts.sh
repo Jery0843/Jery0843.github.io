@@ -3,7 +3,7 @@
 # Usage: ./tools/convert_posts.sh [GITHUB_PAT]
 # If no PAT is provided, it will try to use the GH_TOKEN environment variable.
 
-set -euo pipefail
+set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
