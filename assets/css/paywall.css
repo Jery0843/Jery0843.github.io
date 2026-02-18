@@ -1,0 +1,177 @@
+/* ===== Paywall Section ===== */
+.paywall-section {
+  position: relative;
+  margin-top: 2rem;
+  padding-top: 0;
+}
+
+/* Gradient fade effect — hints at more content below */
+.paywall-fade {
+  position: relative;
+  width: 100%;
+  height: 80px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    var(--main-bg, #1b1b1e) 100%
+  );
+  pointer-events: none;
+  margin-bottom: -1px;
+}
+
+/* CTA Card — glassmorphism style */
+.paywall-cta {
+  position: relative;
+  text-align: center;
+  padding: 3rem 2rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.paywall-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  filter: drop-shadow(0 2px 8px rgba(255, 200, 0, 0.3));
+}
+
+.paywall-cta h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  color: var(--heading-color, #e8e6e3);
+  letter-spacing: -0.01em;
+}
+
+.paywall-cta p {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text-muted-color, #868e96);
+  margin-bottom: 1.5rem;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* CTA Button */
+.paywall-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff !important;
+  background: linear-gradient(135deg, #6c5ce7 0%, #a855f7 50%, #ec4899 100%);
+  border: none;
+  border-radius: 12px;
+  text-decoration: none !important;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow:
+    0 4px 16px rgba(108, 92, 231, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.paywall-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #6c5ce7 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: inherit;
+}
+
+.paywall-btn:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 24px rgba(108, 92, 231, 0.45),
+    0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.paywall-btn:hover::before {
+  opacity: 1;
+}
+
+.paywall-btn span,
+.paywall-btn {
+  position: relative;
+  z-index: 1;
+}
+
+.paywall-btn:active {
+  transform: translateY(0);
+}
+
+/* ===== Light mode overrides ===== */
+[data-mode="light"] .paywall-fade,
+:root:not([data-mode="dark"]) .paywall-fade {
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    var(--main-bg, #f7f7f7) 100%
+  );
+}
+
+[data-mode="light"] .paywall-cta,
+:root:not([data-mode="dark"]) .paywall-cta {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+[data-mode="light"] .paywall-cta h3 {
+  color: #1a1a2e;
+}
+
+[data-mode="light"] .paywall-cta p {
+  color: #555;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 576px) {
+  .paywall-cta {
+    padding: 2rem 1.25rem;
+    border-radius: 12px;
+  }
+
+  .paywall-cta h3 {
+    font-size: 1.25rem;
+  }
+
+  .paywall-btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.95rem;
+    border-radius: 10px;
+  }
+
+  .paywall-icon {
+    font-size: 2.5rem;
+  }
+}
+
+/* ===== Subtle pulse animation on load ===== */
+@keyframes paywall-pulse {
+  0%, 100% { box-shadow: 0 4px 16px rgba(108, 92, 231, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1); }
+  50% { box-shadow: 0 4px 24px rgba(108, 92, 231, 0.5), 0 2px 8px rgba(0, 0, 0, 0.15); }
+}
+
+.paywall-btn {
+  animation: paywall-pulse 3s ease-in-out infinite;
+}
+
+.paywall-btn:hover {
+  animation: none;
+}

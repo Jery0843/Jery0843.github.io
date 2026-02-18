@@ -1,0 +1,44 @@
+name: Sync HTB Writeups
+
+on:
+  # Run on schedule (every 6 hours)
+  schedule:
+    - cron: '0 */6 * * *'
+
+  # Manual trigger
+  workflow_dispatch:
+
+  # Trigger from external webhook (e.g., from HTB repo)
+  repository_dispatch:
+    types: [sync-posts]
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout blog repo
+        uses: actions/checkout@v4
+
+      - name: Run conversion script
+        env:
+          GH_TOKEN: ${{ secrets.HTB_PAT }}
+        run: |
+          chmod +x ./tools/convert_posts.sh
+          ./tools/convert_posts.sh
+
+      - name: Check for changes
+        id: changes
+        run: |
+          git diff --quiet && echo "changed=false" >> $GITHUB_OUTPUT || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push new posts
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add _posts/
+          git commit -m "🔄 Auto-sync HTB writeups [$(date -u +%Y-%m-%d)]"
+          git push
