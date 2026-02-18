@@ -98,73 +98,13 @@ for FILENAME in $MD_FILES; do
   mv "$TEMP_FILE.new" "$TEMP_FILE"
 
   # --- TRUNCATION LOGIC ---
-  # Show only recon/enumeration content. Cut at the FIRST section that
-  # moves beyond recon. The writeups use many different header formats:
-  #   Numbered:  ## 2. Initial Access  |  ## 3. Exploitation
-  #   Phased:    ## Phase 2: MSSQL Exploitation
-  #   Chapters:  ## Chapter 3: First Foothold
-  #   Acts:      ## Act II: The OAuth Heist  |  ## 🎬 Act 2
-  #   Sections:  ## SECTION 2 - LEAKED REPO CREDENTIALS
-  #   Escaped:   ## 2\. Crafting Your Profile
-  #   Plain:     ## SQL Server Exploitation
-  #
-  # STRATEGY:
-  #   1. Find the 2nd top-level ## header (skip ### sub-headers).
-  #      Most writeups put all recon in the 1st ## section.
-  #   2. If the 1st ## header itself is an exploit keyword, use fallback.
-  #   3. Override: if a keyword match comes BEFORE the 2nd ##, use that.
-  #   4. Fallback: first 30 lines.
+  # Simple fixed-line cutoff: show only the first 30 lines as a preview.
+  # This is consistent across all writeup formats.
+  PREVIEW_LINES=30
 
-  FREE_CONTENT=""
-  CUTOFF_LINE=""
-
-  # Get all top-level ## headers (not ### or deeper), with line numbers
-  ALL_H2=$(echo "$RAW_CONTENT" | grep -n '^## ' || true)
-
-  # Count how many ## headers exist
-  H2_COUNT=$(echo "$ALL_H2" | grep -c '.' || true)
-
-  # Keyword patterns that ALWAYS indicate paid content
-  PAID_KEYWORDS="initial access|exploitation|exploit chain|weaponiz|payload|foothold|first foothold|gaining access|reverse shell|rce|remote code|post.exploitation|post exploitation|privilege escalation|privesc|priv esc|lateral movement|user flag|root flag|credential|code execution|sandbox escape|authentication bypass|the oauth|the heist|sql server exploitation|hash crack|impersonat"
-
-  # Strategy 1: Keyword match on ## headers only (not ### to avoid false positives)
-  KEYWORD_LINE=$(echo "$RAW_CONTENT" | grep -inE "^##\s+.*(${PAID_KEYWORDS})" | head -1 | cut -d: -f1 || true)
-
-  # Strategy 2: Find the 2nd ## header (first section = free, rest = paid)
-  SECOND_H2=""
-  if [ "$H2_COUNT" -ge 2 ]; then
-    SECOND_H2=$(echo "$ALL_H2" | sed -n '2p' | cut -d: -f1 || true)
-  fi
-
-  # Pick the EARLIEST cutoff between keyword match and 2nd section
-  if [ -n "$KEYWORD_LINE" ] && [ -n "$SECOND_H2" ]; then
-    if [ "$KEYWORD_LINE" -le "$SECOND_H2" ]; then
-      CUTOFF_LINE="$KEYWORD_LINE"
-    else
-      CUTOFF_LINE="$SECOND_H2"
-    fi
-  elif [ -n "$KEYWORD_LINE" ]; then
-    CUTOFF_LINE="$KEYWORD_LINE"
-  elif [ -n "$SECOND_H2" ]; then
-    CUTOFF_LINE="$SECOND_H2"
-  fi
-
-  # Safety: if cutoff is too early (< 8 lines), it's probably wrong — use 2nd H2 or fallback
-  if [ -n "$CUTOFF_LINE" ] && [ "$CUTOFF_LINE" -lt 8 ]; then
-    if [ -n "$SECOND_H2" ] && [ "$SECOND_H2" -ge 8 ]; then
-      CUTOFF_LINE="$SECOND_H2"
-    else
-      CUTOFF_LINE=""
-    fi
-  fi
-
-  if [ -n "$CUTOFF_LINE" ] && [ "$CUTOFF_LINE" -gt 1 ]; then
-    FREE_CONTENT=$(echo "$RAW_CONTENT" | head -n $((CUTOFF_LINE - 1)))
-    echo "    🔒 Paywall cutoff at line $CUTOFF_LINE"
-  else
-    FREE_CONTENT=$(echo "$RAW_CONTENT" | head -n 30)
-    echo "    ⚠️  No section match found, using first 30 lines"
-  fi
+  TOTAL_LINES=$(echo "$RAW_CONTENT" | wc -l)
+  FREE_CONTENT=$(echo "$RAW_CONTENT" | head -n "$PREVIEW_LINES")
+  echo "    🔒 Showing $PREVIEW_LINES of $TOTAL_LINES lines"
 
   # Remove the first H1 line (it becomes the post title in front matter)
   TITLE_LINE=$(echo "$RAW_CONTENT" | grep -n '^# ' | head -1 | cut -d: -f1 || true)
