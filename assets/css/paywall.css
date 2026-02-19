@@ -78,35 +78,14 @@
   box-shadow:
     0 4px 16px rgba(108, 92, 231, 0.3),
     0 2px 4px rgba(0, 0, 0, 0.1);
-  position: relative;
-  overflow: hidden;
-}
-
-.paywall-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #6c5ce7 100%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  border-radius: inherit;
 }
 
 .paywall-btn:hover {
+  background: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #6c5ce7 100%);
   transform: translateY(-2px);
   box-shadow:
     0 8px 24px rgba(108, 92, 231, 0.45),
     0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.paywall-btn:hover::before {
-  opacity: 1;
-}
-
-.paywall-btn span,
-.paywall-btn {
-  position: relative;
-  z-index: 1;
 }
 
 .paywall-btn:active {
