@@ -112,7 +112,7 @@ for FILENAME in $MD_FILES; do
     HEADERS_WITH_LINES=$(echo "$RAW_CONTENT" | grep -n '^#' || true)
 
     # Build the prompt
-    AI_PROMPT="You are analyzing a HackTheBox writeup. Given the numbered headers below, return ONLY the line number where the FREE PREVIEW should end. The free preview should ONLY include: basic port scanning, nmap results, service version detection, host configuration, and basic web page discovery. It must NOT include: credential discovery, password leaks, exploitation, initial access, foothold, reverse shell, source code analysis, vulnerability identification, CVE exploitation, privilege escalation, flag capture, or any sensitive findings like credentials, tokens, or secrets — even if discovered during enumeration.\n\nHeaders:\n${HEADERS_WITH_LINES}\n\nRespond with ONLY a number (the line number to cut at). Nothing else."
+    AI_PROMPT="You are analyzing a HackTheBox writeup for a paywall cutoff. Given the numbered headers below, return ONLY the line number where the FREE PREVIEW should end. The free preview should ONLY show: basic port scanning, nmap results, service version detection, host configuration, and basic web page discovery (what the site looks like). It must NOT include ANY of the following — cut BEFORE any of these: username enumeration, LDAP injection, SQL injection, command injection, type juggling, brute force, hash cracking, credential discovery, password leaks, exploitation, initial access, foothold, reverse shell, source code analysis, vulnerability identification, CVE exploitation, privilege escalation, flag capture, sensitive findings, tokens, secrets, SSRF, XSS, file inclusion, deserialization, or any offensive technique beyond basic scanning. Be strict — when in doubt, cut earlier.\n\nHeaders:\n${HEADERS_WITH_LINES}\n\nRespond with ONLY a number (the line number to cut at). Nothing else."
 
     # Escape the prompt for JSON
     AI_JSON_PROMPT=$(echo "$AI_PROMPT" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))' 2>/dev/null || true)
@@ -176,7 +176,7 @@ except:
 
   # ═══ FALLBACK 1: Keyword-based header matching ═══
   if [ -z "$CUTOFF_LINE" ]; then
-    PAID_KEYWORDS="initial access|exploitation|exploit chain|weaponiz|payload|foothold|gaining access|reverse shell|rce|remote code|privilege escalation|privesc|lateral movement|code execution|sandbox escape|authentication bypass|hash crack"
+    PAID_KEYWORDS="initial access|exploitation|exploit chain|weaponiz|payload|foothold|gaining access|reverse shell|rce|remote code|privilege escalation|privesc|lateral movement|code execution|sandbox escape|authentication bypass|hash crack|username enumerat|ldap injection|sql injection|command injection|brute.force|type juggling|ssrf|xss|file inclusion|deserializ|credential"
 
     CUTOFF_LINE=$(echo "$RAW_CONTENT" | grep -inE "^##\s+.*(${PAID_KEYWORDS})" | head -1 | cut -d: -f1 || true)
 
