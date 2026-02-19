@@ -114,19 +114,17 @@
 }
 
 /* ===== Light mode overrides ===== */
-[data-mode="light"] .paywall-fade,
-:root:not([data-mode="dark"]) .paywall-fade {
+[data-mode="light"] .paywall-fade {
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    var(--main-bg, #f7f7f7) 100%
+    #f7f7f7 100%
   );
 }
 
-[data-mode="light"] .paywall-cta,
-:root:not([data-mode="dark"]) .paywall-cta {
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+[data-mode="light"] .paywall-cta {
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
@@ -137,7 +135,7 @@
 }
 
 [data-mode="light"] .paywall-cta p {
-  color: #555;
+  color: #444;
 }
 
 /* ===== Responsive ===== */

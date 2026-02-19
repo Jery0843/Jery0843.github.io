@@ -112,7 +112,7 @@ for FILENAME in $MD_FILES; do
     HEADERS_WITH_LINES=$(echo "$RAW_CONTENT" | grep -n '^#' || true)
 
     # Build the prompt
-    AI_PROMPT="You are analyzing a HackTheBox writeup. Given the numbered headers below, return ONLY the line number where the RECONNAISSANCE/ENUMERATION section ENDS and EXPLOITATION/INITIAL ACCESS begins. The free preview should include recon, scanning, enumeration, web discovery. It should NOT include exploitation, initial access, foothold, reverse shell, privilege escalation, or flag capture.\n\nHeaders:\n${HEADERS_WITH_LINES}\n\nRespond with ONLY a number (the line number to cut at). Nothing else."
+    AI_PROMPT="You are analyzing a HackTheBox writeup. Given the numbered headers below, return ONLY the line number where the FREE PREVIEW should end. The free preview should ONLY include: basic port scanning, nmap results, service version detection, host configuration, and basic web page discovery. It must NOT include: credential discovery, password leaks, exploitation, initial access, foothold, reverse shell, source code analysis, vulnerability identification, CVE exploitation, privilege escalation, flag capture, or any sensitive findings like credentials, tokens, or secrets — even if discovered during enumeration.\n\nHeaders:\n${HEADERS_WITH_LINES}\n\nRespond with ONLY a number (the line number to cut at). Nothing else."
 
     # Escape the prompt for JSON
     AI_JSON_PROMPT=$(echo "$AI_PROMPT" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))' 2>/dev/null || true)
