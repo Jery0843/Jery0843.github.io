@@ -81,6 +81,7 @@
 }
 
 .paywall-btn:hover {
+  color: #fff !important;
   background: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #6c5ce7 100%);
   transform: translateY(-2px);
   box-shadow:
