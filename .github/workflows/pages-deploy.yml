@@ -48,6 +48,7 @@ jobs:
       - name: Sync HTB writeups
         env:
           GH_TOKEN: ${{ secrets.HTB_PAT }}
+          GROK_API_KEY: ${{ secrets.GROK_API_KEY }}
         run: |
           chmod +x ./tools/convert_posts.sh
           ./tools/convert_posts.sh

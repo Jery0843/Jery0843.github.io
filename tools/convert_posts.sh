@@ -98,13 +98,86 @@ for FILENAME in $MD_FILES; do
   mv "$TEMP_FILE.new" "$TEMP_FILE"
 
   # --- TRUNCATION LOGIC ---
-  # Simple fixed-line cutoff: show only the first 30 lines as a preview.
-  # This is consistent across all writeup formats.
-  PREVIEW_LINES=30
+  # 3-tier strategy to find where the free (recon) content ends:
+  #   PRIMARY:    Ask Grok AI to identify the cutoff line
+  #   FALLBACK 1: Keyword-based header matching
+  #   FALLBACK 2: Fixed 30-line preview
 
+  CUTOFF_LINE=""
   TOTAL_LINES=$(echo "$RAW_CONTENT" | wc -l)
-  FREE_CONTENT=$(echo "$RAW_CONTENT" | head -n "$PREVIEW_LINES")
-  echo "    🔒 Showing $PREVIEW_LINES of $TOTAL_LINES lines"
+
+  # ═══ PRIMARY: Grok AI ═══
+  if [ -n "${GROK_API_KEY:-}" ]; then
+    echo "    🤖 Asking Grok to identify recon boundary..."
+
+    # Send only numbered headers (not full content) to save tokens
+    HEADERS_WITH_LINES=$(echo "$RAW_CONTENT" | grep -n '^#' || true)
+
+    # Build the Grok prompt
+    GROK_PROMPT="You are analyzing a HackTheBox writeup. Given the numbered headers below, return ONLY the line number where the RECONNAISSANCE/ENUMERATION section ENDS and EXPLOITATION/INITIAL ACCESS begins. The free preview should include recon, scanning, enumeration, web discovery. It should NOT include exploitation, initial access, foothold, reverse shell, privilege escalation, or flag capture.\n\nHeaders:\n${HEADERS_WITH_LINES}\n\nRespond with ONLY a number (the line number to cut at). Nothing else."
+
+    # Escape the prompt for JSON
+    GROK_JSON_PROMPT=$(echo "$GROK_PROMPT" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))' 2>/dev/null || true)
+
+    if [ -n "$GROK_JSON_PROMPT" ]; then
+      GROK_RESPONSE=$(curl -s --max-time 15 \
+        -H "Authorization: Bearer ${GROK_API_KEY}" \
+        -H "Content-Type: application/json" \
+        -d "{\"model\":\"grok-3-mini\",\"messages\":[{\"role\":\"user\",\"content\":${GROK_JSON_PROMPT}}],\"temperature\":0}" \
+        "https://api.x.ai/v1/chat/completions" 2>/dev/null || true)
+
+      # Extract the line number from Grok's response
+      if [ -n "$GROK_RESPONSE" ]; then
+        GROK_LINE=$(echo "$GROK_RESPONSE" | python3 -c '
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    text = data["choices"][0]["message"]["content"].strip()
+    # Extract first number from response
+    import re
+    match = re.search(r"\d+", text)
+    if match:
+        print(match.group())
+except:
+    pass
+' 2>/dev/null || true)
+
+        if [ -n "$GROK_LINE" ] && [ "$GROK_LINE" -gt 5 ] 2>/dev/null && [ "$GROK_LINE" -lt "$TOTAL_LINES" ] 2>/dev/null; then
+          CUTOFF_LINE="$GROK_LINE"
+          echo "    ✅ Grok says: cut at line $CUTOFF_LINE"
+        else
+          echo "    ⚠️  Grok returned invalid line ($GROK_LINE), falling back..."
+        fi
+      else
+        echo "    ⚠️  Grok API returned empty response, falling back..."
+      fi
+    fi
+  else
+    echo "    ℹ️  No GROK_API_KEY set, skipping AI analysis"
+  fi
+
+  # ═══ FALLBACK 1: Keyword-based header matching ═══
+  if [ -z "$CUTOFF_LINE" ]; then
+    PAID_KEYWORDS="initial access|exploitation|exploit chain|weaponiz|payload|foothold|gaining access|reverse shell|rce|remote code|privilege escalation|privesc|lateral movement|code execution|sandbox escape|authentication bypass|hash crack"
+
+    CUTOFF_LINE=$(echo "$RAW_CONTENT" | grep -inE "^##\s+.*(${PAID_KEYWORDS})" | head -1 | cut -d: -f1 || true)
+
+    if [ -n "$CUTOFF_LINE" ] && [ "$CUTOFF_LINE" -gt 5 ]; then
+      echo "    🔑 Keyword fallback: cut at line $CUTOFF_LINE"
+    else
+      CUTOFF_LINE=""
+    fi
+  fi
+
+  # ═══ FALLBACK 2: Fixed 30-line preview ═══
+  if [ -z "$CUTOFF_LINE" ]; then
+    CUTOFF_LINE=31
+    echo "    📏 Fixed fallback: using first 30 lines"
+  fi
+
+  # Apply the cutoff
+  FREE_CONTENT=$(echo "$RAW_CONTENT" | head -n $((CUTOFF_LINE - 1)))
+  echo "    🔒 Preview: $((CUTOFF_LINE - 1)) of $TOTAL_LINES lines"
 
   # Remove the first H1 line (it becomes the post title in front matter)
   TITLE_LINE=$(echo "$RAW_CONTENT" | grep -n '^# ' | head -1 | cut -d: -f1 || true)
