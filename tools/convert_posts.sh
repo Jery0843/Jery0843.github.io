@@ -106,35 +106,51 @@ for FILENAME in $MD_FILES; do
   CUTOFF_LINE=""
   TOTAL_LINES=$(echo "$RAW_CONTENT" | wc -l)
 
-  # ═══ PRIMARY: Grok AI ═══
-  if [ -n "${GROK_API_KEY:-}" ]; then
-    echo "    🤖 Asking Grok to identify recon boundary..."
-
-    # Send only numbered headers (not full content) to save tokens
+  # ═══ PRIMARY: Groq Llama 70B → fallback to Llama 8B ═══
+  if [ -n "${GROQ_API_KEY:-}" ]; then
+    # Send only numbered headers to save tokens
     HEADERS_WITH_LINES=$(echo "$RAW_CONTENT" | grep -n '^#' || true)
 
-    # Build the Grok prompt
-    GROK_PROMPT="You are analyzing a HackTheBox writeup. Given the numbered headers below, return ONLY the line number where the RECONNAISSANCE/ENUMERATION section ENDS and EXPLOITATION/INITIAL ACCESS begins. The free preview should include recon, scanning, enumeration, web discovery. It should NOT include exploitation, initial access, foothold, reverse shell, privilege escalation, or flag capture.\n\nHeaders:\n${HEADERS_WITH_LINES}\n\nRespond with ONLY a number (the line number to cut at). Nothing else."
+    # Build the prompt
+    AI_PROMPT="You are analyzing a HackTheBox writeup. Given the numbered headers below, return ONLY the line number where the RECONNAISSANCE/ENUMERATION section ENDS and EXPLOITATION/INITIAL ACCESS begins. The free preview should include recon, scanning, enumeration, web discovery. It should NOT include exploitation, initial access, foothold, reverse shell, privilege escalation, or flag capture.\n\nHeaders:\n${HEADERS_WITH_LINES}\n\nRespond with ONLY a number (the line number to cut at). Nothing else."
 
     # Escape the prompt for JSON
-    GROK_JSON_PROMPT=$(echo "$GROK_PROMPT" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))' 2>/dev/null || true)
+    AI_JSON_PROMPT=$(echo "$AI_PROMPT" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))' 2>/dev/null || true)
 
-    if [ -n "$GROK_JSON_PROMPT" ]; then
-      GROK_RESPONSE=$(curl -s --max-time 15 \
-        -H "Authorization: Bearer ${GROK_API_KEY}" \
-        -H "Content-Type: application/json" \
-        -d "{\"model\":\"grok-3-mini\",\"messages\":[{\"role\":\"user\",\"content\":${GROK_JSON_PROMPT}}],\"temperature\":0}" \
-        "https://api.x.ai/v1/chat/completions" 2>/dev/null || true)
+    if [ -n "$AI_JSON_PROMPT" ]; then
+      # Try Llama 70B first, then 8B
+      for MODEL in "llama-3.3-70b-versatile" "llama-3.1-8b-instant"; do
+        echo "    🤖 Trying Groq $MODEL..."
 
-      # Extract the line number from Grok's response
-      if [ -n "$GROK_RESPONSE" ]; then
-        GROK_LINE=$(echo "$GROK_RESPONSE" | python3 -c '
+        AI_RESPONSE=$(curl -s --max-time 20 \
+          -H "Authorization: Bearer ${GROQ_API_KEY}" \
+          -H "Content-Type: application/json" \
+          -d "{\"model\":\"${MODEL}\",\"messages\":[{\"role\":\"user\",\"content\":${AI_JSON_PROMPT}}],\"temperature\":0,\"max_tokens\":10}" \
+          "https://api.groq.com/openai/v1/chat/completions" 2>/dev/null || true)
+
+        if [ -n "$AI_RESPONSE" ]; then
+          # Check for API errors
+          API_ERROR=$(echo "$AI_RESPONSE" | python3 -c '
 import sys, json
 try:
     data = json.load(sys.stdin)
+    if "error" in data:
+        print(data["error"].get("message", "unknown error"))
+except:
+    pass
+' 2>/dev/null || true)
+
+          if [ -n "$API_ERROR" ]; then
+            echo "    ⚠️  $MODEL error: $API_ERROR"
+            continue
+          fi
+
+          # Extract the line number
+          AI_LINE=$(echo "$AI_RESPONSE" | python3 -c '
+import sys, json, re
+try:
+    data = json.load(sys.stdin)
     text = data["choices"][0]["message"]["content"].strip()
-    # Extract first number from response
-    import re
     match = re.search(r"\d+", text)
     if match:
         print(match.group())
@@ -142,18 +158,20 @@ except:
     pass
 ' 2>/dev/null || true)
 
-        if [ -n "$GROK_LINE" ] && [ "$GROK_LINE" -gt 5 ] 2>/dev/null && [ "$GROK_LINE" -lt "$TOTAL_LINES" ] 2>/dev/null; then
-          CUTOFF_LINE="$GROK_LINE"
-          echo "    ✅ Grok says: cut at line $CUTOFF_LINE"
+          if [ -n "$AI_LINE" ] && [ "$AI_LINE" -gt 5 ] 2>/dev/null && [ "$AI_LINE" -lt "$TOTAL_LINES" ] 2>/dev/null; then
+            CUTOFF_LINE="$AI_LINE"
+            echo "    ✅ $MODEL says: cut at line $CUTOFF_LINE"
+            break
+          else
+            echo "    ⚠️  $MODEL returned invalid line: '$AI_LINE'"
+          fi
         else
-          echo "    ⚠️  Grok returned invalid line ($GROK_LINE), falling back..."
+          echo "    ⚠️  $MODEL returned no response"
         fi
-      else
-        echo "    ⚠️  Grok API returned empty response, falling back..."
-      fi
+      done
     fi
   else
-    echo "    ℹ️  No GROK_API_KEY set, skipping AI analysis"
+    echo "    ℹ️  No GROQ_API_KEY set, skipping AI analysis"
   fi
 
   # ═══ FALLBACK 1: Keyword-based header matching ═══
