@@ -1,10 +1,6 @@
 name: Sync HTB Writeups
 
 on:
-  # Run on schedule (every 6 hours)
-  schedule:
-    - cron: '0 */6 * * *'
-
   # Manual trigger
   workflow_dispatch:
 
